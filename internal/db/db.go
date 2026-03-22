@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	_ "context"
 	"database/sql"
 	"fmt"
@@ -14,7 +15,7 @@ type Store struct {
 }
 
 func Open(path string) (*Store, error) {
-	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=5000")
+	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=5000", path)
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
@@ -34,4 +35,30 @@ func Open(path string) (*Store, error) {
 		db: db,
 	}, nil
 
+}
+
+func (s *Store) GetCount(ctx context.Context) (int64, error){
+	var count int64 
+	err := s.db.QueryRowContext(ctx, `SELECT count FROM page_views WHERE id = 1`).Scan(&count)
+	return count, err
+}
+
+func (s *Store) Increment(ctx context.Context) (int64, error){
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, `UPDATE page_view s SET count = count + 1 WHERE id = 1`)
+	if err != nil {
+		return 0, err
+	}
+
+	var count int64 
+	err = tx.QueryRowContext(ctx, `SELECT count FROM page_views WHERE id = 1`).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, tx.Commit()
 }
