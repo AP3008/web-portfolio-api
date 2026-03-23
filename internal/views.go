@@ -2,9 +2,7 @@ package internal
 
 import (
 	"crypto/subtle"
-	_ "crypto/subtle"
 	"encoding/json"
-	_ "encoding/json"
 	"net/http"
 	"web-portfolio-api/internal/db"
 )
@@ -41,9 +39,9 @@ func (h *ViewsHandler) GetViews(w http.ResponseWriter, r *http.Request){
 
 func (h *ViewsHandler) IncrementViews(w http.ResponseWriter, r *http.Request){
 	provided := r.URL.Query().Get("key")
-	if subtle.ConstantTimeCompare([]byte(provided), []byte(h.key)){
+	if subtle.ConstantTimeCompare([]byte(provided), []byte(h.apiKey)) != 1{
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnaithorized)
+		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
 		return 
 	}

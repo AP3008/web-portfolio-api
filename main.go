@@ -6,6 +6,8 @@ import (
 	"os"
 	"web-portfolio-api/internal"
 	"web-portfolio-api/internal/db"
+
+	"github.com/go-chi/chi"
 )
 
 func main() {
@@ -18,5 +20,8 @@ func main() {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 
-	viewsHandler := handler.viewsHandler
+	viewsHandler := internal.ViewsHandler(store, apiKey)
+	r := chi.NewRouter()
+
+	r.Use
 }
