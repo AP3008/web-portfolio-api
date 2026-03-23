@@ -73,3 +73,31 @@ func (s *Store) Increment(ctx context.Context) (int64, error){
 	}
 	return count, tx.Commit()
 }
+
+const MatrixSize = 3 // The matrix is a 3x3 
+
+func (s *Store) InitMatrix(ctx context.Context, rows int, cols int) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err 
+	}
+
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `
+		INSERT OR IGNORE INTO matrix_cells (row, col, value) VALUES (?, ?, 0)`,)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for r := 0; r < MatrixSize; r++ {
+		for c := 0; c < MatrixSize; c++ {
+			if _, err := stmt.ExecContext(ctx, r, c); err != nil {
+				return err
+			}
+		}
+	}
+	return tx.Commit()
+}
+
