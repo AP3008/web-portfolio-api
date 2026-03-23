@@ -10,44 +10,8 @@ type Store struct {
 	db *sql.DB
 }
 
-func Open(path string) (*Store, error) {
-	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=5000", path)
-	db, err := sql.Open("sqlite", dsn)
-	if err != nil {
-		return nil, err
-	}
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS page_views (
-			id    INTEGER PRIMARY KEY CHECK (id = 1),
-			count INTEGER NOT NULL DEFAULT 0
-		);
-		INSERT OR IGNORE INTO page_views (id, count) VALUES (1, 0);
-	`)
-	if err != nil {
-		return nil, err
-	}
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS matrix_cells (
-			row   INTEGER NOT NULL,
-			col   INTEGER NOT NULL,
-			value INTEGER NOT NULL DEFAULT 0 CHECK (value IN (0,1)),
-			PRIMARY KEY (row, col)
-		);
-	`)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Store{
-		db: db,
-	}, nil
-
-}
-
-// OpenTurso opens a remote Turso database. Used for Vercel deployment.
-func OpenTurso(dbURL, authToken string) (*Store, error) {
-	dsn := dbURL + "?authToken=" + authToken
-	db, err := sql.Open("libsql", dsn)
+func OpenPostgres(connStr string) (*Store, error) {
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +22,7 @@ func OpenTurso(dbURL, authToken string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = db.Exec(`INSERT OR IGNORE INTO page_views (id, count) VALUES (1, 0)`)
+	_, err = db.Exec(`INSERT INTO page_views (id, count) VALUES (1, 0) ON CONFLICT DO NOTHING`)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +42,7 @@ func OpenTurso(dbURL, authToken string) (*Store, error) {
 }
 
 func (s *Store) GetCount(ctx context.Context) (int64, error){
-	var count int64 
+	var count int64
 	err := s.db.QueryRowContext(ctx, `SELECT count FROM page_views WHERE id = 1`).Scan(&count)
 	return count, err
 }
@@ -95,7 +59,7 @@ func (s *Store) Increment(ctx context.Context) (int64, error){
 		return 0, err
 	}
 
-	var count int64 
+	var count int64
 	err = tx.QueryRowContext(ctx, `SELECT count FROM page_views WHERE id = 1`).Scan(&count)
 	if err != nil {
 		return 0, err
@@ -103,18 +67,18 @@ func (s *Store) Increment(ctx context.Context) (int64, error){
 	return count, tx.Commit()
 }
 
-const MatrixSize = 3 // The matrix is a 3x3 
+const MatrixSize = 3 // The matrix is a 3x3
 
 func (s *Store) InitMatrix(ctx context.Context) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err 
+		return err
 	}
 
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, `
-		INSERT OR IGNORE INTO matrix_cells (row, col, value) VALUES (?, ?, 0)`,)
+	stmt, err := tx.PrepareContext(ctx,
+		`INSERT INTO matrix_cells (row, col, value) VALUES ($1, $2, 0) ON CONFLICT DO NOTHING`)
 	if err != nil {
 		return err
 	}
@@ -145,9 +109,9 @@ func (s *Store) GetMatrix(ctx context.Context) ([][]int, error){
 	defer sqlRows.Close()
 
 	for sqlRows.Next() {
-		var r, c, v int 
+		var r, c, v int
 		if err := sqlRows.Scan(&r, &c, &v); err != nil {
-		return nil, err
+			return nil, err
 		}
 		grid[r][c] = v
 	}
@@ -162,24 +126,24 @@ func (s* Store) ToggleCell(ctx context.Context, row int, col int) (int, error){
 	defer tx.Rollback()
 
 	result, err := tx.ExecContext(ctx,
-		`UPDATE matrix_cells SET value = 1 - value WHERE row = ? AND col = ?`,
+		`UPDATE matrix_cells SET value = 1 - value WHERE row = $1 AND col = $2`,
 		row, col,
 	)
 	if err != nil {
 		return 0, err
 	}
-	
+
 	affected, err := result.RowsAffected()
 	if err != nil {
 		return 0, err
 	}
 	if affected == 0 {
-		return 0, fmt.Errorf("cell (%d, %d) does not exist", row, col) 
+		return 0, fmt.Errorf("cell (%d, %d) does not exist", row, col)
 	}
-	var value int 
+	var value int
 	err = tx.QueryRowContext(ctx,
-		`SELECT value FROM matrix_cells WHERE row = ? AND col = ?`,
-		row, col, 
+		`SELECT value FROM matrix_cells WHERE row = $1 AND col = $2`,
+		row, col,
 	).Scan(&value)
 	if err != nil {
 		return 0, err

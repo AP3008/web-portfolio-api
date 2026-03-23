@@ -10,7 +10,7 @@ import (
 	"web-portfolio-api/internal"
 	"web-portfolio-api/internal/db"
 
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	_ "github.com/lib/pq"
 )
 
 var (
@@ -19,20 +19,19 @@ var (
 )
 
 func setup() {
-	tursoURL := os.Getenv("TURSO_DB_URL")
-	tursoToken := os.Getenv("TURSO_DB_AUTH_TOKEN")
+	postgresURL := os.Getenv("POSTGRES_URL")
 	apiKey := os.Getenv("API_KEY")
 
-	if tursoURL == "" || tursoToken == "" {
-		log.Fatal("TURSO_DB_URL and TURSO_DB_AUTH_TOKEN must be set")
+	if postgresURL == "" {
+		log.Fatal("POSTGRES_URL must be set")
 	}
 	if apiKey == "" {
 		log.Fatal("API_KEY must be set")
 	}
 
-	store, err := db.OpenTurso(tursoURL, tursoToken)
+	store, err := db.OpenPostgres(postgresURL)
 	if err != nil {
-		log.Fatalf("Failed to open Turso database: %v", err)
+		log.Fatalf("Failed to open database: %v", err)
 	}
 
 	if err := store.InitMatrix(context.Background()); err != nil {

@@ -8,7 +8,7 @@ import (
 	"web-portfolio-api/internal"
 	"web-portfolio-api/internal/db"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -16,10 +16,13 @@ func main() {
 	if apiKey == "" {
 		log.Fatal("API_KEY environment variable is required")
 	}
+	postgresURL := os.Getenv("POSTGRES_URL")
+	if postgresURL == "" {
+		log.Fatal("POSTGRES_URL environment variable is required")
+	}
 	port := "8080"
-	dbPath := "views.db"
-	
-	store, err := db.Open(dbPath)
+
+	store, err := db.OpenPostgres(postgresURL)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -29,7 +32,7 @@ func main() {
 	}
 
 	viewsHandler := internal.NewViewsHandler(store, apiKey)
-	
+
 	matrixHandler := internal.NewMatrixHandler(store, apiKey)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /views", viewsHandler.GetViews)
