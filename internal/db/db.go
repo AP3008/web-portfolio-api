@@ -30,6 +30,17 @@ func Open(path string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS matrix_cells (
+			row   INTEGER NOT NULL,
+			col   INTEGER NOT NULL,
+			value INTEGER NOT NULL DEFAULT 0 CHECK (value IN (0,1))
+			PRIMARY KEY (row, col)
+		);
+	`)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Store{
 		db: db,
