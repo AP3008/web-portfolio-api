@@ -80,4 +80,5 @@ func (h *MatrixHandler) ToggleCell(w http.ResponseWriter, r *http.Request){
 		Col:   req.Col,
 		Value: value, 
 	})
+
 }

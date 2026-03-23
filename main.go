@@ -19,11 +19,13 @@ func main() {
 	}
 
 	viewsHandler := internal.NewViewsHandler(store, apiKey)
-
+	
+	matrixHandler := internal.NewMatrixHandler(store, apiKey)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /views", viewsHandler.GetViews)
 	mux.HandleFunc("POST /views/add", viewsHandler.IncrementViews)
-	mux.HandleFunc("GET /matrix",)
+	mux.HandleFunc("GET /matrix", matrixHandler.GetMatrix)
+	mux.HandleFunc("POST /matrix/toggle", matrixHandler.ToggleCell)
 
 	log.Printf("listening on: %s", port)
 	log.Fatal(http.ListenAndServe(":" + port, mux))
