@@ -6,9 +6,6 @@ import (
 	"os"
 	"web-portfolio-api/internal"
 	"web-portfolio-api/internal/db"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/cors"
 )
 
 func main() {
@@ -22,9 +19,12 @@ func main() {
 	}
 
 	viewsHandler := internal.NewViewsHandler(store, apiKey)
-	r := chi.NewRouter()
-	r.Get("/views", viewsHandler.GetViews)
-	r.Post("/views", viewsHandler.IncrementViews)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /views", viewsHandler.GetViews)
+	mux.HandleFunc("POST /views/add", viewsHandler.IncrementViews)
+	mux.HandleFunc("GET /matrix",)
+
 	log.Printf("listening on: %s", port)
-	log.Fatal(http.ListenAndServe(":" + port, r))
+	log.Fatal(http.ListenAndServe(":" + port, mux))
 }

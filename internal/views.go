@@ -8,7 +8,7 @@ import (
 )
 
 type ViewsHandler struct {
-	store * db.Store
+	store *db.Store
 	apiKey string
 }
 
