@@ -1,32 +1,28 @@
-package handler
+package main
 
 import (
 	"context"
 	"log"
 	"net/http"
 	"os"
-	"sync"
-
 	"web-portfolio-api/internal"
 	"web-portfolio-api/internal/db"
 
 	_ "github.com/lib/pq"
 )
 
-var (
-	mux  *http.ServeMux
-	once sync.Once
-)
-
-func setup() {
-	postgresURL := os.Getenv("POSTGRES_URL")
+func main() {
 	apiKey := os.Getenv("API_KEY")
-
-	if postgresURL == "" {
-		log.Fatal("POSTGRES_URL must be set")
-	}
 	if apiKey == "" {
-		log.Fatal("API_KEY must be set")
+		log.Fatal("API_KEY environment variable is required")
+	}
+	postgresURL := os.Getenv("POSTGRES_URL")
+	if postgresURL == "" {
+		log.Fatal("POSTGRES_URL environment variable is required")
+	}
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
 	}
 
 	store, err := db.OpenPostgres(postgresURL)
@@ -39,16 +35,14 @@ func setup() {
 	}
 
 	viewsHandler := internal.NewViewsHandler(store, apiKey)
-	matrixHandler := internal.NewMatrixHandler(store, apiKey)
 
-	mux = http.NewServeMux()
+	matrixHandler := internal.NewMatrixHandler(store, apiKey)
+	mux := http.NewServeMux()
 	mux.HandleFunc("GET /views", viewsHandler.GetViews)
 	mux.HandleFunc("POST /views/add", viewsHandler.IncrementViews)
 	mux.HandleFunc("GET /matrix", matrixHandler.GetMatrix)
 	mux.HandleFunc("POST /matrix/toggle", matrixHandler.ToggleCell)
-}
 
-func Handler(w http.ResponseWriter, r *http.Request) {
-	once.Do(setup)
-	mux.ServeHTTP(w, r)
+	log.Printf("listening on: %s", port)
+	log.Fatal(http.ListenAndServe(":" + port, mux))
 }
