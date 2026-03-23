@@ -20,7 +20,7 @@ func NewViewsHandler(store *db.Store, apiKey string) *ViewsHandler {
 }
 
 type viewsResponse struct {
-	Count int64 `json: "count"`
+	Count int64 `json:"count"`
 }
 
 func (h *ViewsHandler) GetViews(w http.ResponseWriter, r *http.Request){

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +17,10 @@ func main() {
 	store, err := db.Open(dbPath)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
+	}
+
+	if err := store.InitMatrix(context.Background()); err != nil {
+		log.Fatalf("Failed to initialize matrix: %v", err)
 	}
 
 	viewsHandler := internal.NewViewsHandler(store, apiKey)

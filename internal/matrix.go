@@ -41,8 +41,9 @@ func (h *MatrixHandler) GetMatrix(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, `{"error":"internal error"}`, 
 		http.StatusInternalServerError)
+		return
 	}
-	w.Header().Set("Context-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(matrixRepsonse{
 		Rows: db.MatrixSize,
 		Cols: db.MatrixSize,

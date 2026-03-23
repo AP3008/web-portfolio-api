@@ -2,10 +2,8 @@ package db
 
 import (
 	"context"
-	_ "context"
 	"database/sql"
 	"fmt"
-	_ "fmt"
 
 	_ "modernc.org/sqlite"
 )
@@ -34,7 +32,7 @@ func Open(path string) (*Store, error) {
 		CREATE TABLE IF NOT EXISTS matrix_cells (
 			row   INTEGER NOT NULL,
 			col   INTEGER NOT NULL,
-			value INTEGER NOT NULL DEFAULT 0 CHECK (value IN (0,1))
+			value INTEGER NOT NULL DEFAULT 0 CHECK (value IN (0,1)),
 			PRIMARY KEY (row, col)
 		);
 	`)
@@ -61,7 +59,7 @@ func (s *Store) Increment(ctx context.Context) (int64, error){
 	}
 	defer tx.Rollback()
 
-	_, err = tx.ExecContext(ctx, `UPDATE page_view s SET count = count + 1 WHERE id = 1`)
+	_, err = tx.ExecContext(ctx, `UPDATE page_views SET count = count + 1 WHERE id = 1`)
 	if err != nil {
 		return 0, err
 	}
@@ -76,7 +74,7 @@ func (s *Store) Increment(ctx context.Context) (int64, error){
 
 const MatrixSize = 3 // The matrix is a 3x3 
 
-func (s *Store) InitMatrix(ctx context.Context, rows int, cols int) error {
+func (s *Store) InitMatrix(ctx context.Context) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err 
@@ -141,12 +139,15 @@ func (s* Store) ToggleCell(ctx context.Context, row int, col int) (int, error){
 	}
 	
 	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
 	if affected == 0 {
 		return 0, fmt.Errorf("cell (%d, %d) does not exist", row, col) 
 	}
 	var value int 
 	err = tx.QueryRowContext(ctx,
-		`SELECT value FROM matrix_cells WEHRE row = ? AND col = ?`,
+		`SELECT value FROM matrix_cells WHERE row = ? AND col = ?`,
 		row, col, 
 	).Scan(&value)
 	if err != nil {
