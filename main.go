@@ -11,6 +11,9 @@ import (
 
 func main() {
 	apiKey := os.Getenv("API_KEY")
+	if apiKey == "" {
+		log.Fatal("API_KEY environment variable is required")
+	}
 	port := "8080"
 	dbPath := "views.db"
 	
