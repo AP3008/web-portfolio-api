@@ -107,7 +107,8 @@ func (s *Store) GetMatrix(ctx context.Context) ([][]int, error){
 		grid[i] = make([]int, MatrixSize)
 	}
 
-	sqlRows, err := s.db.QueryContext(ctx, `SELECT row, col, value FROM matrix_cells ORDER by row, col`
+	sqlRows, err := s.db.QueryContext(ctx,
+	`SELECT row, col, value FROM matrix_cells ORDER by row, col`,
 	)
 	if err != nil {
 		return nil, err
@@ -124,15 +125,22 @@ func (s *Store) GetMatrix(ctx context.Context) ([][]int, error){
 	return grid, sqlRows.Err()
 }
 
-func (s* Store) ToggleCell(ctx context.Context, row, col int) (int, err){
-	tx, err := s.db.BeginTx(ctx, `
-		UPDATE matrix_cells SET value = 1 - value WHERE row = ? AND col = ?`, 
-		row,
-		col,
+func (s* Store) ToggleCell(ctx context.Context, row int, col int) (int, error){
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	result, err := tx.ExecContext(ctx,
+		`UPDATE matrix_cells SET value = 1 - value WHERE row = ? AND col = ?`,
+		row, col,
 	)
 	if err != nil {
 		return 0, err
 	}
+	
+	affected, err := result.RowsAffected()
 	if affected == 0 {
 		return 0, fmt.Errorf("cell (%d, %d) does not exist", row, col) 
 	}
