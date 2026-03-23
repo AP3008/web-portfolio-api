@@ -7,7 +7,8 @@ import (
 	"web-portfolio-api/internal"
 	"web-portfolio-api/internal/db"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 )
 
 func main() {
@@ -20,8 +21,10 @@ func main() {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 
-	viewsHandler := internal.ViewsHandler(store, apiKey)
+	viewsHandler := internal.NewViewsHandler(store, apiKey)
 	r := chi.NewRouter()
-
-	r.Use
+	r.Get("/views", viewsHandler.GetViews)
+	r.Post("/views", viewsHandler.IncrementViews)
+	log.Printf("listening on: %s", port)
+	log.Fatal(http.ListenAndServe(":" + port, r))
 }

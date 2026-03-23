@@ -12,7 +12,7 @@ type ViewsHandler struct {
 	apiKey string
 }
 
-func NewViewsHandle(store *db.Store, apiKey string) *ViewsHandler {
+func NewViewsHandler(store *db.Store, apiKey string) *ViewsHandler {
 	return &ViewsHandler{
 		store: store,
 		apiKey: apiKey,
