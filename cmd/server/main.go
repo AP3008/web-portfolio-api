@@ -7,6 +7,8 @@ import (
 	"os"
 	"web-portfolio-api/internal"
 	"web-portfolio-api/internal/db"
+
+	_ "modernc.org/sqlite"
 )
 
 func main() {

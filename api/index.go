@@ -9,6 +9,8 @@ import (
 
 	"web-portfolio-api/internal"
 	"web-portfolio-api/internal/db"
+
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 var (
