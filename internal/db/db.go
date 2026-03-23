@@ -101,3 +101,48 @@ func (s *Store) InitMatrix(ctx context.Context, rows int, cols int) error {
 	return tx.Commit()
 }
 
+func (s *Store) GetMatrix(ctx context.Context) ([][]int, error){
+	grid := make([][]int, MatrixSize)
+	for i := range grid {
+		grid[i] = make([]int, MatrixSize)
+	}
+
+	sqlRows, err := s.db.QueryContext(ctx, `SELECT row, col, value FROM matrix_cells ORDER by row, col`
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+
+	for sqlRows.Next() {
+		var r, c, v int 
+		if err := sqlRows.Scan(&r, &c, &v); err != nil {
+		return nil, err
+		}
+		grid[r][c] = v
+	}
+	return grid, sqlRows.Err()
+}
+
+func (s* Store) ToggleCell(ctx context.Context, row, col int) (int, err){
+	tx, err := s.db.BeginTx(ctx, `
+		UPDATE matrix_cells SET value = 1 - value WHERE row = ? AND col = ?`, 
+		row,
+		col,
+	)
+	if err != nil {
+		return 0, err
+	}
+	if affected == 0 {
+		return 0, fmt.Errorf("cell (%d, %d) does not exist", row, col) 
+	}
+	var value int 
+	err = tx.QueryRowContext(ctx,
+		`SELECT value FROM matrix_cells WEHRE row = ? AND col = ?`,
+		row, col, 
+	).Scan(&value)
+	if err != nil {
+		return 0, err
+	}
+	return value, tx.Commit()
+}

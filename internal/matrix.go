@@ -18,3 +18,5 @@ func NewMatrixHandler (store *db.Store, apiKey string) (*MatrixHandler) {
 		apiKey: apiKey,
 	}
 }
+
+
